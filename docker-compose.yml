@@ -1,0 +1,36 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: weather-mysql
+    environment:
+      MYSQL_DATABASE: weatherdb
+      MYSQL_ROOT_PASSWORD: 12345
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./weatherdb_dump.sql:/docker-entrypoint-initdb.d/weatherdb_dump.sql  # Ánh xạ file dump vào thư mục init của MySQL
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "--silent"]
+      interval: 30s
+      retries: 3
+      start_period: 10s
+      timeout: 10s
+
+  weatherapi: 
+    build:
+      context: ./WeatherApiService
+      dockerfile: Dockerfile
+    container_name: weatherapi
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/weatherdb
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 12345
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql-data:
